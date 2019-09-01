@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\uTinyRipperCore\uTinyRipperCore.csproj" />
+  </ItemGroup>
+  <!--ItemGroup Condition=" '$(Platform)' == 'x64' "-->
+  <ItemGroup>
+    <ContentWithTargetPath Include="Libraries\x64\fmod_x64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>fmod.dll</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+  <!--
+  <ItemGroup Condition=" '$(Platform)' == 'x86' ">
+    <ContentWithTargetPath Include="Libraries\x86\fmod_x86.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>fmod.dll</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+  -->
+</Project>

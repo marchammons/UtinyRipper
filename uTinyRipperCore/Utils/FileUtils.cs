@@ -141,7 +141,17 @@ namespace uTinyRipper
 
 			string escapedName = Regex.Escape(name);
 			List<string> files = new List<string>();
-			DirectoryInfo dirInfo = new DirectoryInfo(DirectoryUtils.ToLongPath(dirPath, true));
+            DirectoryInfo dirInfo = new DirectoryInfo(dirPath);
+            /* MRH - this line was causing the error below.  
+            DirectoryInfo dirInfo = new DirectoryInfo(DirectoryUtils.ToLongPath(dirPath, true));
+                - think this fix is okay because dirPath is set to the "ToLongPath()" about 16 code lines above
+
+                error: System.ArgumentException: Illegal characters in path.
+                at System.Security.Permissions.FileIOPermission.EmulateFileIOPermissionChecks(String fullPath)
+                at System.IO.DirectoryInfo.Init(String path, Boolean checkHost)
+                at uTinyRipper.FileUtils.GetUniqueName(String dirPath, String fileName, Int32 maxNameLength) in 
+                C:\Users\Maha\source\repos\UtinyRipper\uTinyRipperCore\Utils\FileUtils.cs:line 145
+            */
 			Regex regex = new Regex($@"(?i)^{escapedName}(_[\d]+)?\.[^\.]+$");
 			foreach (FileInfo fileInfo in dirInfo.EnumerateFiles($"{name}_*{ext}"))
 			{
