@@ -1,32 +1,57 @@
 ﻿using System;
 using System.Dynamic;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using uTinyRipper;
+using uTinyRipper.Exporters;
+using AudioClip = uTinyRipper.Classes.AudioClip;
+
 using Object = uTinyRipper.Classes.Object;
 using Version = uTinyRipper.Version;
-using uTinyRipper.Exporters;
 
+// MRH - quick python wrapper based upon the command line interface 
+//     - TODO - supply a string-based filter through rip() and apply via AssetSelector
 namespace uTinyRipperPython
 {
-    public class PythonWrapper {
-
-        public string go()
+    public class PythonLogger : ILogger
+    {
+        public PythonLogger()
         {
-            return "hello world";
         }
+
+        public void Log(LogType type, LogCategory category, string message)
+        {
+#if !DEBUG
+            if (category == LogCategory.Debug)
+            {
+                return;
+            }
+#endif
+            Console.WriteLine($"{type}:{category}: {message}");
+        }
+
+        public static PythonLogger Instance { get; } = new PythonLogger();
+    }
+
+    public class PythonWrapper {
 
         public static bool AssetSelector(Object asset)
         {
-            return true;
+            // MRH - filter on AudioClips
+            if(asset.ClassID == ClassIDType.AudioClip) 
+            {
+                AudioClip audio = (AudioClip)asset;
+                Console.WriteLine("queued {0}\\{1}", audio.ExportPath, audio.ValidName);
+                return true;
+            }
+            return false;
         }
 
-        public void rip(string[] args)
+        public void rip(string[] args, string targetDir)
         {
+            Logger.Instance = PythonLogger.Instance;
             Config.IsAdvancedLog = true;
             Config.IsGenerateGUIDByContent = false;
-            Config.IsExportDependencies = false;
+            Config.IsExportDependencies = true;
 
             if (args.Length == 0)
             {
@@ -55,7 +80,7 @@ namespace uTinyRipperPython
                 GameStructure = GameStructure.Load(args);
                 Validate();
 
-                // MRH : can make this an option to include/exclude.  Including will transcode, e.g. fsb (FSB5) into wav
+                // MRH - can make this an option to include/exclude.  Including will transcode, e.g. fsb (FSB5) into wav
                 GameStructure.FileCollection.Exporter.OverrideExporter(ClassIDType.AudioClip, new AudioAssetExporter());
 
                 /* MRH - borrowing from the GUI... there seems to be much more work there than in the CLI
@@ -76,17 +101,16 @@ namespace uTinyRipperPython
                 GameStructure.FileCollection.Exporter.OverrideExporter(ClassIDType.Font, engineExporter);
                 GameStructure.FileCollection.Exporter.OverrideExporter(ClassIDType.Sprite, engineExporter);
                 GameStructure.FileCollection.Exporter.OverrideExporter(ClassIDType.MonoBehaviour, engineExporter);
+
+                PrepareExportDirectory(targetDir);
                 */
 
-                // string exportPath = Path.Combine("Ripped", GameStructure.Name);
-                string exportPath = $"Ripped";
-                // PrepareExportDirectory(exportPath);
-                GameStructure.Export(exportPath, AssetSelector);
-                Console.WriteLine("Finished");
+                GameStructure.Export(targetDir, AssetSelector);
+                Logger.Log(LogType.Info, LogCategory.General, "Finished");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("error : " + ex.ToString());
+                Logger.Log(LogType.Error, LogCategory.General, ex.ToString());
             }
         }
 
@@ -95,15 +119,15 @@ namespace uTinyRipperPython
             Version[] versions = GameStructure.FileCollection.Files.Select(t => t.Version).Distinct().ToArray();
             if (versions.Count() > 1)
             {
-                Console.WriteLine($"Asset collection has versions probably incompatible with each other. Here they are:");
+                Logger.Log(LogType.Warning, LogCategory.Import, $"Asset collection has versions probably incompatible with each other. Here they are:");
                 foreach (Version version in versions)
                 {
-                    Console.WriteLine(version.ToString());
+                    Logger.Log(LogType.Warning, LogCategory.Import, version.ToString());
                 }
             }
         }
 
-        /* MRH - don't delete, might need that
+        /* MRH - don't delete, might need later
         private void PrepareExportDirectory(string path)
         {
             if (DirectoryUtils.Exists(path))
@@ -126,13 +150,9 @@ namespace uTinyRipperPython
             wrapper = new PythonWrapper();
         }
 
-        public string go() {
-            return wrapper.go();
-        }
-
-        public void rip(string[] args)
+        public void rip(string[] args, string targetDir)
         {
-            wrapper.rip(args);
+            wrapper.rip(args, targetDir);
             return;
         }
     }
